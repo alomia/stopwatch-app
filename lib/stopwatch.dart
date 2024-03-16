@@ -10,14 +10,16 @@ class StopWatch extends StatefulWidget {
 }
 
 class _StopWatchState extends State<StopWatch> {
-  int seconds = 0;
-  late Timer timer;
+  int milliseconds = 0;
   bool _isTicking = false;
+  late Timer timer;
+
+  final laps = <int>[];
 
   void _onTick(Timer time) {
     if (mounted) {
       setState(() {
-        ++seconds;
+        milliseconds += 100;
       });
     }
   }
@@ -30,53 +32,91 @@ class _StopWatchState extends State<StopWatch> {
         title: const Text("StopWatch"),
       ),
       body: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
         children: <Widget>[
-          Text(
-            "$seconds ${_secondsText()}",
-            style: Theme.of(context).textTheme.headlineSmall,
-          ),
-          const SizedBox(height: 20.0),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: <Widget>[
-              ElevatedButton(
-                style: ButtonStyle(
-                    backgroundColor:
-                        MaterialStateProperty.all<Color>(Colors.green),
-                    foregroundColor:
-                        MaterialStateProperty.all<Color>(Colors.white),
-                    shape: MaterialStateProperty.all<RoundedRectangleBorder>(
-                        RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10)))),
-                onPressed: _isTicking ? null : _startTimer,
-                child: const Text("Start"),
-              ),
-              const SizedBox(width: 20.0),
-              TextButton(
-                style: ButtonStyle(
-                    backgroundColor:
-                        MaterialStateProperty.all<Color>(Colors.red),
-                    foregroundColor:
-                        MaterialStateProperty.all<Color>(Colors.white),
-                    shape: MaterialStateProperty.all<RoundedRectangleBorder>(
-                        RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10)))),
-                onPressed: _isTicking ? _stopTimer : null,
-                child: const Text("Stop"),
-              )
-            ],
-          )
+          Expanded(child: _buildCounter(context)),
+          Expanded(child: _buildLapDisplay()),
         ],
       ),
     );
   }
 
+  Widget _buildCounter(BuildContext context) {
+    return Container(
+      color: Theme.of(context).colorScheme.inversePrimary,
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: <Widget>[
+          Text("Lap ${laps.length + 1}",
+              style: Theme.of(context).textTheme.headlineSmall),
+          Text(
+            _secondsText(milliseconds),
+            style: Theme.of(context).textTheme.headlineSmall,
+          ),
+          const SizedBox(height: 20.0),
+          _buildControls()
+        ],
+      ),
+    );
+  }
+
+  Widget _buildControls() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: <Widget>[
+        ElevatedButton(
+          style: ButtonStyle(
+            backgroundColor: MaterialStateProperty.all<Color>(Colors.green),
+            foregroundColor: MaterialStateProperty.all<Color>(Colors.white),
+            padding: MaterialStateProperty.all<EdgeInsets>(
+              const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            ),
+            shape: MaterialStateProperty.all<RoundedRectangleBorder>(
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+          ),
+          onPressed: _isTicking ? null : _startTimer,
+          child: const Text("Start"),
+        ),
+        const SizedBox(width: 20.0),
+        ElevatedButton(
+          style: ButtonStyle(
+            backgroundColor: MaterialStateProperty.all<Color>(Colors.blue),
+            foregroundColor: MaterialStateProperty.all<Color>(Colors.white),
+            padding: MaterialStateProperty.all<EdgeInsets>(
+              const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            ),
+            shape: MaterialStateProperty.all<RoundedRectangleBorder>(
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+          ),
+          onPressed: _isTicking ? _laps : null,
+          child: const Text("Laps"),
+        ),
+        const SizedBox(width: 20.0),
+        TextButton(
+          style: ButtonStyle(
+            backgroundColor: MaterialStateProperty.all<Color>(Colors.red),
+            foregroundColor: MaterialStateProperty.all<Color>(Colors.white),
+            padding: MaterialStateProperty.all<EdgeInsets>(
+              const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            ),
+            shape: MaterialStateProperty.all<RoundedRectangleBorder>(
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+          ),
+          onPressed: _isTicking ? _stopTimer : null,
+          child: const Text("Stop"),
+        )
+      ],
+    );
+  }
+
   void _startTimer() {
-    timer = Timer.periodic(const Duration(seconds: 1), _onTick);
+    timer = Timer.periodic(const Duration(milliseconds: 100), _onTick);
 
     setState(() {
-      seconds = 0;
+      milliseconds = 0;
+      laps.clear();
       _isTicking = true;
     });
   }
@@ -88,7 +128,28 @@ class _StopWatchState extends State<StopWatch> {
     });
   }
 
-  String _secondsText() => seconds == 1 ? "Second" : "Seconds";
+  void _laps() {
+    setState(() {
+      laps.add(milliseconds);
+      milliseconds = 0;
+    });
+  }
+
+  String _secondsText(int milliseconds) {
+    final seconds = milliseconds / 1000;
+    return "$seconds seconds";
+  }
+
+  Widget _buildLapDisplay() {
+    return ListView(
+      children: <Widget>[
+        for (int milliseconds in laps)
+          ListTile(
+            title: Text(_secondsText(milliseconds)),
+          )
+      ],
+    );
+  }
 
   @override
   void dispose() {
