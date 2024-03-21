@@ -1,4 +1,6 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:stopwatch/stopwatch.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -8,7 +10,6 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  bool loggedIn = false;
   String name = "";
 
   final _nameController = TextEditingController();
@@ -22,18 +23,8 @@ class _LoginScreenState extends State<LoginScreen> {
         title: const Text("Login"),
       ),
       body: Center(
-        child: loggedIn ? _buildSuccess() : _buildLoginForm(),
+        child: _buildLoginForm(),
       ),
-    );
-  }
-
-  Widget _buildSuccess() {
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: <Widget>[
-        const Icon(Icons.check, color: Colors.orangeAccent),
-        Text("Hi $name")
-      ],
     );
   }
 
@@ -73,7 +64,7 @@ class _LoginScreenState extends State<LoginScreen> {
             ElevatedButton(
               onPressed: _validate,
               child: const Text("Continue"),
-            )
+            ),
           ],
         ),
       ),
@@ -82,12 +73,16 @@ class _LoginScreenState extends State<LoginScreen> {
 
   void _validate() {
     final form = _formKey.currentState;
-    if (form?.validate() ?? false) {
-      setState(() {
-        loggedIn = true;
-        name = _nameController.text;
-      });
+    if (form?.validate() == false) {
+      return;
     }
+
+    final String name = _nameController.text;
+    final String email = _emailController.text;
+
+    Navigator.of(context).pushReplacement(MaterialPageRoute(
+      builder: (context) => StopWatch(name: name, email: email),
+    ));
   }
 
   @override

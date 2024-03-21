@@ -1,9 +1,13 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:stopwatch/platform_alert.dart';
 
 class StopWatch extends StatefulWidget {
-  const StopWatch({super.key});
+  final String name;
+  final String email;
+
+  const StopWatch({super.key, required this.name, required this.email});
 
   @override
   State<StopWatch> createState() => _StopWatchState();
@@ -32,7 +36,7 @@ class _StopWatchState extends State<StopWatch> {
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-        title: const Text("StopWatch"),
+        title: Text(widget.name),
       ),
       body: Column(
         children: <Widget>[
@@ -129,6 +133,12 @@ class _StopWatchState extends State<StopWatch> {
     setState(() {
       _isTicking = false;
     });
+
+    final totalRuntime = laps.fold(milliseconds, (total, lap) => total += lap);
+
+    final alert = PlatformAlert(
+        title: "Run Completed!", message: "Total Run time is $totalRuntime");
+    alert.show(context);
   }
 
   void _laps() {
