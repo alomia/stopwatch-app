@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:stopwatch/platform_alert.dart';
 
 class StopWatch extends StatefulWidget {
   final String name;
@@ -35,8 +34,16 @@ class _StopWatchState extends State<StopWatch> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
+        backgroundColor: const Color(0xFF2a9d8f),
         title: Text(widget.name),
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(1.0),
+          child: Container(
+            color: const Color(0xFF29867B),
+            height: 1.0,
+            width: double.infinity,
+          ),
+        ),
       ),
       body: Column(
         children: <Widget>[
@@ -49,12 +56,14 @@ class _StopWatchState extends State<StopWatch> {
 
   Widget _buildCounter(BuildContext context) {
     return Container(
-      color: Theme.of(context).colorScheme.inversePrimary,
+      color: const Color(0xFF2a9d8f),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: <Widget>[
-          Text("Lap ${laps.length + 1}",
-              style: Theme.of(context).textTheme.headlineSmall),
+          Text(
+            "Lap ${laps.length + 1}",
+            style: Theme.of(context).textTheme.headlineSmall,
+          ),
           Text(
             _secondsText(milliseconds),
             style: Theme.of(context).textTheme.headlineSmall,
@@ -72,7 +81,8 @@ class _StopWatchState extends State<StopWatch> {
       children: <Widget>[
         ElevatedButton(
           style: ButtonStyle(
-            backgroundColor: MaterialStateProperty.all<Color>(Colors.green),
+            backgroundColor:
+                MaterialStateProperty.all<Color>(const Color(0xFF264653)),
             foregroundColor: MaterialStateProperty.all<Color>(Colors.white),
             padding: MaterialStateProperty.all<EdgeInsets>(
               const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -87,7 +97,8 @@ class _StopWatchState extends State<StopWatch> {
         const SizedBox(width: 20.0),
         ElevatedButton(
           style: ButtonStyle(
-            backgroundColor: MaterialStateProperty.all<Color>(Colors.blue),
+            backgroundColor:
+                MaterialStateProperty.all<Color>(const Color(0xFFF4A261)),
             foregroundColor: MaterialStateProperty.all<Color>(Colors.white),
             padding: MaterialStateProperty.all<EdgeInsets>(
               const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -100,19 +111,22 @@ class _StopWatchState extends State<StopWatch> {
           child: const Text("Laps"),
         ),
         const SizedBox(width: 20.0),
-        TextButton(
-          style: ButtonStyle(
-            backgroundColor: MaterialStateProperty.all<Color>(Colors.red),
-            foregroundColor: MaterialStateProperty.all<Color>(Colors.white),
-            padding: MaterialStateProperty.all<EdgeInsets>(
-              const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        Builder(
+          builder: (context) => TextButton(
+            style: ButtonStyle(
+              backgroundColor:
+                  MaterialStateProperty.all<Color>(const Color(0xFFE76F51)),
+              foregroundColor: MaterialStateProperty.all<Color>(Colors.white),
+              padding: MaterialStateProperty.all<EdgeInsets>(
+                const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              ),
+              shape: MaterialStateProperty.all<RoundedRectangleBorder>(
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              ),
             ),
-            shape: MaterialStateProperty.all<RoundedRectangleBorder>(
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-            ),
+            onPressed: _isTicking ? () => _stopTimer(context) : null,
+            child: const Text("Stop"),
           ),
-          onPressed: _isTicking ? _stopTimer : null,
-          child: const Text("Stop"),
         )
       ],
     );
@@ -128,17 +142,40 @@ class _StopWatchState extends State<StopWatch> {
     });
   }
 
-  void _stopTimer() {
+  void _stopTimer(BuildContext context) {
     timer.cancel();
     setState(() {
       _isTicking = false;
     });
 
-    final totalRuntime = laps.fold(milliseconds, (total, lap) => total += lap);
+    final controller =
+        showBottomSheet(context: context, builder: _buildRunCompleteSheet);
 
-    final alert = PlatformAlert(
-        title: "Run Completed!", message: "Total Run time is $totalRuntime");
-    alert.show(context);
+    Future.delayed(const Duration(seconds: 5)).then((_) {
+      controller.close();
+    });
+  }
+
+  Widget _buildRunCompleteSheet(BuildContext context) {
+    final totalRuntime = laps.fold(milliseconds, (total, lap) => total + lap);
+    final textTheme = Theme.of(context).textTheme;
+
+    return SafeArea(
+      child: Container(
+        color: Theme.of(context).cardColor,
+        width: double.infinity,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 30.0),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: <Widget>[
+              Text("Run Finished!", style: textTheme.headlineSmall),
+              Text("Total Run Time is ${_secondsText(totalRuntime)}."),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   void _laps() {
