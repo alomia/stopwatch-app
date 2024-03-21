@@ -3,7 +3,10 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 class StopWatch extends StatefulWidget {
-  const StopWatch({super.key});
+  final String name;
+  final String email;
+
+  const StopWatch({super.key, required this.name, required this.email});
 
   @override
   State<StopWatch> createState() => _StopWatchState();
@@ -15,6 +18,9 @@ class _StopWatchState extends State<StopWatch> {
   late Timer timer;
 
   final laps = <int>[];
+
+  final itemHeight = 60.0;
+  final scrollController = ScrollController();
 
   void _onTick(Timer time) {
     if (mounted) {
@@ -28,8 +34,16 @@ class _StopWatchState extends State<StopWatch> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-        title: const Text("StopWatch"),
+        backgroundColor: const Color(0xFF2a9d8f),
+        title: Text(widget.name),
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(1.0),
+          child: Container(
+            color: const Color(0xFF29867B),
+            height: 1.0,
+            width: double.infinity,
+          ),
+        ),
       ),
       body: Column(
         children: <Widget>[
@@ -42,12 +56,14 @@ class _StopWatchState extends State<StopWatch> {
 
   Widget _buildCounter(BuildContext context) {
     return Container(
-      color: Theme.of(context).colorScheme.inversePrimary,
+      color: const Color(0xFF2a9d8f),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: <Widget>[
-          Text("Lap ${laps.length + 1}",
-              style: Theme.of(context).textTheme.headlineSmall),
+          Text(
+            "Lap ${laps.length + 1}",
+            style: Theme.of(context).textTheme.headlineSmall,
+          ),
           Text(
             _secondsText(milliseconds),
             style: Theme.of(context).textTheme.headlineSmall,
@@ -65,7 +81,8 @@ class _StopWatchState extends State<StopWatch> {
       children: <Widget>[
         ElevatedButton(
           style: ButtonStyle(
-            backgroundColor: MaterialStateProperty.all<Color>(Colors.green),
+            backgroundColor:
+                MaterialStateProperty.all<Color>(const Color(0xFF264653)),
             foregroundColor: MaterialStateProperty.all<Color>(Colors.white),
             padding: MaterialStateProperty.all<EdgeInsets>(
               const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -80,7 +97,8 @@ class _StopWatchState extends State<StopWatch> {
         const SizedBox(width: 20.0),
         ElevatedButton(
           style: ButtonStyle(
-            backgroundColor: MaterialStateProperty.all<Color>(Colors.blue),
+            backgroundColor:
+                MaterialStateProperty.all<Color>(const Color(0xFFF4A261)),
             foregroundColor: MaterialStateProperty.all<Color>(Colors.white),
             padding: MaterialStateProperty.all<EdgeInsets>(
               const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -93,19 +111,22 @@ class _StopWatchState extends State<StopWatch> {
           child: const Text("Laps"),
         ),
         const SizedBox(width: 20.0),
-        TextButton(
-          style: ButtonStyle(
-            backgroundColor: MaterialStateProperty.all<Color>(Colors.red),
-            foregroundColor: MaterialStateProperty.all<Color>(Colors.white),
-            padding: MaterialStateProperty.all<EdgeInsets>(
-              const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        Builder(
+          builder: (context) => TextButton(
+            style: ButtonStyle(
+              backgroundColor:
+                  MaterialStateProperty.all<Color>(const Color(0xFFE76F51)),
+              foregroundColor: MaterialStateProperty.all<Color>(Colors.white),
+              padding: MaterialStateProperty.all<EdgeInsets>(
+                const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              ),
+              shape: MaterialStateProperty.all<RoundedRectangleBorder>(
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              ),
             ),
-            shape: MaterialStateProperty.all<RoundedRectangleBorder>(
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-            ),
+            onPressed: _isTicking ? () => _stopTimer(context) : null,
+            child: const Text("Stop"),
           ),
-          onPressed: _isTicking ? _stopTimer : null,
-          child: const Text("Stop"),
         )
       ],
     );
@@ -121,11 +142,40 @@ class _StopWatchState extends State<StopWatch> {
     });
   }
 
-  void _stopTimer() {
+  void _stopTimer(BuildContext context) {
     timer.cancel();
     setState(() {
       _isTicking = false;
     });
+
+    final controller =
+        showBottomSheet(context: context, builder: _buildRunCompleteSheet);
+
+    Future.delayed(const Duration(seconds: 5)).then((_) {
+      controller.close();
+    });
+  }
+
+  Widget _buildRunCompleteSheet(BuildContext context) {
+    final totalRuntime = laps.fold(milliseconds, (total, lap) => total + lap);
+    final textTheme = Theme.of(context).textTheme;
+
+    return SafeArea(
+      child: Container(
+        color: Theme.of(context).cardColor,
+        width: double.infinity,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 30.0),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: <Widget>[
+              Text("Run Finished!", style: textTheme.headlineSmall),
+              Text("Total Run Time is ${_secondsText(totalRuntime)}."),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   void _laps() {
@@ -133,6 +183,12 @@ class _StopWatchState extends State<StopWatch> {
       laps.add(milliseconds);
       milliseconds = 0;
     });
+
+    scrollController.animateTo(
+      itemHeight * laps.length,
+      duration: const Duration(milliseconds: 500),
+      curve: Curves.easeIn,
+    );
   }
 
   String _secondsText(int milliseconds) {
@@ -141,19 +197,27 @@ class _StopWatchState extends State<StopWatch> {
   }
 
   Widget _buildLapDisplay() {
-    return ListView(
-      children: <Widget>[
-        for (int milliseconds in laps)
-          ListTile(
-            title: Text(_secondsText(milliseconds)),
-          )
-      ],
+    return Scrollbar(
+      child: ListView.builder(
+        controller: scrollController,
+        itemExtent: itemHeight,
+        itemCount: laps.length,
+        itemBuilder: (context, index) {
+          final milliseconds = laps[index];
+          return ListTile(
+            contentPadding: const EdgeInsets.symmetric(horizontal: 50),
+            title: Text("lap ${index + 1}"),
+            trailing: Text(_secondsText(milliseconds)),
+          );
+        },
+      ),
     );
   }
 
   @override
   void dispose() {
     timer.cancel();
+    scrollController.dispose();
     super.dispose();
   }
 }
